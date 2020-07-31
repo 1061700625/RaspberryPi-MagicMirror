@@ -1,0 +1,1 @@
+pyuic5 -o mirrorUI.py mirrorUI.ui

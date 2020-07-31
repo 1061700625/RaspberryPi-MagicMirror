@@ -1,0 +1,1 @@
+python MagicMirror.py
