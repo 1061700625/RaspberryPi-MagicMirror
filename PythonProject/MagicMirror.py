@@ -21,6 +21,7 @@ import re
 from face import FaceFunction
 from speech import SpeechFunction
 import threading
+import subprocess
 
 # 本类为MQTT的实现
 class MQTT(QObject):
@@ -97,16 +98,20 @@ class ThirdPartInfo:
     def weather(self, locate):
         url = 'http://tianqi.2345.com/t/searchCity.php?q=%s&pType=local' % locate
         res = requests.get(url).json()
-        url = r'http://tianqi.2345.com' + res['res'][0]['href']
+        href = res['res'][0]['href'].split('/') # /guangzhou/59287.htm
+        url = r'http://tianqi.2345.com/' + href[1] + '1d/' + href[2]
+        # print(url)
         html = requests.get(url)
-        html.encoding = 'gb2312'
+        # html.encoding = 'gb2312'
         soup = BeautifulSoup(html.text, 'lxml')
-        imgiconURL = 'http://img2.' + re.findall(r'2345.com/tianqiimg/tianqi_icon/\w+.png', html.text)[0]
-        weather_only = soup.find('a', class_='data').get_text().replace(' ', '').strip().split('\n')
-        weather = weather_only[0]
-        temperature = weather_only[1]
-        wind_force = soup.find('div', class_='wea-about').find('ul', class_='clearfix').find_all('li')[1].get_text().strip()
-        emoticon = soup.find('div', class_='emoticon').get_text().strip()
+        # imgiconURL = 'http://img2.' + re.findall(r'2345.com/tianqiimg/tianqi_icon/\w+.png', html.text)[0]
+        imgiconURL = ''
+        weather = soup.find('em', class_='cludy').get_text().strip() 
+        temperature = soup.find('span', class_='real-t').get_text().strip()
+        wind_force = soup.find_all('span', class_='real-data-mess')[0].get_text().strip()
+        # print('wind_force: '+wind_force)
+        emoticon = soup.find('p', class_='aqi-map-type').get_text().strip()
+        # print('emoticon: '+emoticon)
         return [weather, imgiconURL, temperature, wind_force, emoticon]
 
     # 下载图片
@@ -136,6 +141,11 @@ class ExQThread(QThread):
         self.timeSignal.emit(time, date, week)
 
     def updateTempHum(self):
+        res = json.loads(subprocess.check_output('./dht11', timeout=5).decode('utf-8'))
+        # print(res)
+        self.tempHumSignal.emit(res['TMP'] + '°', res['RH'] + '%')
+    
+    def updateTempHum_bk(self):
         sensor = Adafruit_DHT.DHT11
         gpio = 4
         humidity, temperature = Adafruit_DHT.read(sensor, gpio)
@@ -162,7 +172,7 @@ class ExQThread(QThread):
                 path = 'source/icon/' + i
                 self.weatherSignal.emit(res, path)
                 return
-        self.thirdPart.downloadPic(iconURL, path)
+        # self.thirdPart.downloadPic(iconURL, path)
         self.weatherSignal.emit(res, path)
 
     def updateHistory(self):
@@ -177,12 +187,13 @@ class ExQThread(QThread):
                 continue
 
     def updateHeadlines(self):
-        url = 'https://api.xiaohuwei.cn/news.php'
-        res = requests.get(url).json()
+        url = 'https://api.fun-api.com/baidu/hotnews'
+        res = requests.get(url).json()['data']
         res = random.sample(res, 2)
         title1 = '>> ' + res[0]['title']
         title2 = '>> ' + res[1]['title']
         content = title1 + '\n' + title2
+        print(content)
         self.headlinesSignal.emit(content)
 
     def run(self):
@@ -201,7 +212,7 @@ class ExQThread(QThread):
                 if cnt % 10 == 0:
                     self.updateHeadlines()
                     print('updateHeadlines')
-                if cnt % 60 == 0:
+                if cnt % 5 == 0:
                     self.updateTempHum()
                     print('updateTempHum')
                 if cnt >= 600:

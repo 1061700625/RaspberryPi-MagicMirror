@@ -104,7 +104,8 @@ class SpeechFunction:
         while self.checkAudioPlaying():  # 检查音频播放线程是否结束
             time.sleep(1)
         print(">> 开始播")
-        playThread = threading.Thread(target=playsound, args=(filePath,))
+        # playThread = threading.Thread(target=playsound, args=(filePath,))
+        playThread = threading.Thread(target=os.system, args=('omxplayer '+filePath,))
         playThread.setDaemon(True)
         playThread.start()
         self.playThreadArr = playThread
@@ -270,13 +271,14 @@ class SpeechFunction:
 
 def test():
     speech = SpeechFunction()  # 实例化
-    speech.recordAudio('audio/record.pcm', 5)  # 录音
+    #speech.recordAudio('audio/record.pcm', 5)  # 录音
     # filePath = speech.mp3wavConverpcm('audio/text2audio.mp3', 'audio/text2audio.pcm')  # mp3转pcm
-    res = speech.audioToText('audio/record.pcm')  # 语音转文字
+    #res = speech.audioToText('audio/record.pcm')  # 语音转文字
+    res = 'aaaaa'
     print(">> 你说的：", res)
     if res:
-        # msg = speech.tulingBot(res)
-        msg = speech.tencentBot(res)
+        msg = speech.tulingBot(res)
+        # msg = speech.tencentBot(res)
         print(">> 机器人：", msg)
         # speech.tencentTextToAudio(msg, 'audio/text2audio.mp3')
         speech.textToAudio(msg, 'audio/text2audio.mp3')     # 文字转语音
