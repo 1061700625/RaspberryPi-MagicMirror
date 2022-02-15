@@ -1,0 +1,9 @@
+bs4
+requests
+paho-mqtt
+playsound
+baidu-aip
+pyaudio
+lxml
+snowboy
+numpy

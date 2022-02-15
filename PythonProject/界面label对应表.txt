@@ -1,0 +1,24 @@
+label_temperature 	温度
+label_humidity	湿度
+label_weather	天气
+label_weathertips	天气助手
+label_weathericon	天气图标
+label_time	时间
+label_date	日期
+label_week	星期
+label_historyhead	“历史上的今天”
+label_historymsg	历史上的今天 的内容
+label_communicate	文字交互区
+label_todohead	“今日事项”
+label_todomsg	今日事项 的内容
+label_headlineshead	“今天头条”
+label_headlinesmsg	今日头条 的内容
+label_gif		洛天依gif图
+
+
+
+
+
+
+
+

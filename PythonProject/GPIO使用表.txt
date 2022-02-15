@@ -1,0 +1,3 @@
+GPIO7(BCM4) -- DHT11
+GPIO25(BCM26) -- LED
+GPIO24(BCM19) -- 光电传感器（空闲时高电平）
