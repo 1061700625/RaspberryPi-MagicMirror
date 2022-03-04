@@ -19,9 +19,13 @@ import signal
 
 class SpeechFunction:
     def __init__(self):
-        self.APP_ID = '10507675'
-        self.API_KEY = 'ocAxiR6MnNAAIKGW50YU1c1s'
-        self.SECRET_KEY = 'WNypVvOIFzy3AS02M8yapWX8SnkEyW7B'
+        self.APP_ID = '25708878'
+        self.API_KEY = 'GqS3vf9zDLPWTxFKSQxsZPwz'
+        self.SECRET_KEY = 'ARcaVlrTrVUVaLbOgx16ryiub3zkuIdL'
+        
+        #self.APP_ID = '25708891'
+        #self.API_KEY = '0sizTqsc8afyBWjm7BRzq3Hx'
+        #self.SECRET_KEY = 'k7CdmeWpVtYxLdMkNV41rSF1tmbZv0AH'
         self.client = AipSpeech(self.APP_ID, self.API_KEY, self.SECRET_KEY)
         self.playThreadArr = None
         self.audio2textPath = 'audio/audio2text.pcm'
@@ -50,10 +54,62 @@ class SpeechFunction:
             return result
         return None
 
+    def textToAudio_Sougou(self, message, filePath):
+        # https://ai.sogou.com/doc/?url=/docs/content/tts/references/rest/ 
+        '''
+        curl -X POST \
+             -H "Content-Type: application/json" \
+             --data '{
+          "appid": "25w5G9coKR2UCmbuI3VZpfIgGIF",
+          "appkey": "Ijv7cLyx7dxwEeFeDmjflcWH0oSxbswkNR/atdPgSj0Z3Oc9Mot11Vc9xCjluH51DGzVKt1Ehv6BIxQ2dGru2A==",
+          "exp": "3600s"
+        }' https://api.zhiyin.sogou.com/apis/auth/v1/create_token
+        '''
+        token = 'eyJhbGciOiJkaXIiLCJjdHkiOiJKV1QiLCJlbmMiOiJBMTI4R0NNIiwidHlwIjoiSldUIiwiemlwIjoiREVGIn0..bv5w2OZDUVF5rNQ6.DZ1SSCCy0dWCzF7i5fohgdLEir4fNX0CA23MQwihVQOkXKEUgSPiUX8j-kk21ZAm0ywSMdHHdfqwbwRn0oLaRCyHeHCh0Uaa_d86RxisKn7bHejAYjxZX-8Mr4yKGgKiOfHcHgUWarkWAyGu1wVP2PHE6JUNnpoiNAjdWpEmAL1NarHP5UCySaipGPgDMQR4iVO7K0s0zgIufAJytRuJ1Z2tZoQvZdn53ZJRVr5ossFYH4zNAWxYn4f0oSxksRWN37YBTOsr1XE7XMgKa5COqh-b2iSO0kzpmIlUVIKK-JnxAat-lkoYKR2XUHmqGb4sf_xeMncUrRfHSWp5YpWq6GYWZ4Fq0_Msc0A.73y-FwCUkjEPGN9ApFmw5g'
+        url = 'https://api.zhiyin.sogou.com/apis/tts/v1/synthesize'
+        headers = { 
+            'Authorization' : 'Bearer '+token,
+            'Appid' : '25w5G9coKR2UCmbuI3VZpfIgGIF',
+            'Content-Type' : 'application/json',
+            'appkey' : '392bf7ab852d97de783bc039b9d897e6',
+            'secretkey' : '9d7e9639ef6375a4f7b349f1e6830e4f'
+        }
+        data = {
+          'input': {
+            'text': message
+          },
+          'config': {
+            'audio_config': {
+              'audio_encoding': 'LINEAR16',
+              'pitch': 1.0,
+              'volume': 1.0,
+              'speaking_rate': 1.0
+            },
+            'voice_config': {
+              'language_code': 'zh-cmn-Hans-CN',
+              'speaker': 'female'
+            }
+          }
+        }
+        
+        result = requests.post(url=url, headers=headers, data=json.dumps(data, ensure_ascii=False).encode('utf-8')).content
+        # 识别正确返回语音二进制 错误则返回dict 参照下面错误码
+        if not isinstance(result, dict):
+            with open(filePath, 'wb') as f:
+                f.write(result)
+                return True
+        return False
+    
+    
     # 文字转语音，百度接口，单次最长1024字节
     def textToAudio(self, message, filePath):
         """字转语音，百度接口，单次最长1024字节。 message 要转的文字; filePath 语音存放路径"""
-        result = self.client.synthesis(message, 'zh', 1, {'vol': 5, 'per': 111})
+        try:
+            result = self.client.synthesis(message, 'zh', 1, {'vol': 5, 'per': 111})
+        except Exception as e:
+            print('百度接口 字转语音 Error!')
+            return False
+        print('百度接口 字转语音:', result)
         # 识别正确返回语音二进制 错误则返回dict 参照下面错误码
         if not isinstance(result, dict):
             with open(filePath, 'wb') as f:
@@ -188,9 +244,9 @@ class SpeechFunction:
         if not msg:
             print(">> 传入文本为空!")
             return
-        # self.textToAudio(msg, 'audio/text2audio.mp3')  # 文字转语音
+        # self.tencentTextToAudio(msg, 'audio/text2audio.mp3')  # 文字转语音
         self.robotText = msg
-        if self.tencentTextToAudio(msg, 'audio/text2audio.mp3'):
+        if self.textToAudio_Sougou(msg, 'audio/text2audio.mp3'):
             self.playAudio('audio/text2audio.mp3')  # 播放语音
 
     # 文字经机器人后播放，可直接调用的函数
@@ -200,8 +256,8 @@ class SpeechFunction:
         if msg:
             print(">> 机器人：", msg)
             self.robotText = msg
-            # self.textToAudio(msg, 'audio/text2audio.mp3')  # 文字转语音
-            self.tencentTextToAudio(msg, 'audio/text2audio.mp3')
+            self.textToAudio_Sougou(msg, 'audio/text2audio.mp3')  # 文字转语音
+            #self.tencentTextToAudio(msg, 'audio/text2audio.mp3')
             self.playAudio('audio/text2audio.mp3')  # 播放语音
             # while self.checkAudioPlaying():  # 检查音频播放线程是否结束
             #     time.sleep(1)
@@ -221,8 +277,8 @@ class SpeechFunction:
                 if msg:
                     print(">> 机器人：", msg)
                     self.robotText = msg
-                    # self.textToAudio(msg, 'audio/text2audio.mp3')   # 文字转语音
-                    res = self.tencentTextToAudio(msg, 'audio/text2audio.mp3')
+                    self.textToAudio_Sougou(msg, 'audio/text2audio.mp3')   # 文字转语音
+                    #res = self.tencentTextToAudio(msg, 'audio/text2audio.mp3')
                     if not res:  # 腾讯失败，就用百度
                         res = self.textToAudio(msg, 'audio/text2audio.mp3')
                     if res:
@@ -281,7 +337,7 @@ def test():
         # msg = speech.tencentBot(res)
         print(">> 机器人：", msg)
         # speech.tencentTextToAudio(msg, 'audio/text2audio.mp3')
-        speech.textToAudio(msg, 'audio/text2audio.mp3')     # 文字转语音
+        speech.textToAudio_Sougou(msg, 'audio/text2audio.mp3')     # 文字转语音
         speech.playAudio('audio/text2audio.mp3')  # 播放语音
         while speech.checkAudioPlaying():  # 检查音频播放线程是否结束
             time.sleep(1)

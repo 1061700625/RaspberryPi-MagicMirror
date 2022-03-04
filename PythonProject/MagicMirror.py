@@ -75,24 +75,30 @@ class ThirdPartInfo:
 
     # 获取外网IP
     def GetOuterIP(self):
-        ip = requests.get('http://whatismyip.akamai.com/').text
+        #ip = requests.get('http://whatismyip.akamai.com/').text
+        html = requests.get('http://myip.ipip.net/').text
+        ip = re.search(r'(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)', html).group()
         return ip
 
     # 查询IP定位
     def IPLocation(self, ip):
-        url = "http://ip-api.com/json/%s?lang=zh-CN" % ip
-        while True:
+        #url = "http://ip-api.com/json/%s?lang=zh-CN" % ip
+        url = 'https://ip.nf/me.json'
+        cnt = 5
+        while cnt > 0:
             try:
-                sess = requests.session()
-                sess.keep_alive = False
-                ip_dict = sess.get(url, timeout=10).json()
-                if ip_dict['status'] == 'fail':
-                    continue
-                else:
-                    return ip_dict
+                #sess = requests.session()
+                #sess.keep_alive = False
+                ip_dict = requests.get(url, timeout=5).json()
+                return ip_dict['ip']
+                #if ip_dict['status'] == 'fail':
+                #    continue
+                #else:
+                #    return ip_dict
             except Exception as e:
                 print("IPLocation Err!", str(e))
-                continue
+                #continue
+            cnt -= 1
 
     # 输入位置，查询天气
     def weather(self, locate):
@@ -141,9 +147,15 @@ class ExQThread(QThread):
         self.timeSignal.emit(time, date, week)
 
     def updateTempHum(self):
-        res = json.loads(subprocess.check_output('./dht11', timeout=5).decode('utf-8'))
-        # print(res)
-        self.tempHumSignal.emit(res['TMP'] + '°', res['RH'] + '%')
+        try:
+            res = subprocess.check_output('./dht11', timeout=5).decode('utf-8')
+            if res:
+                res = json.loads(res)
+                # print(res)
+                self.tempHumSignal.emit(res['TMP'] + '°', res['RH'] + '%')
+        except:
+            pass
+        
     
     def updateTempHum_bk(self):
         sensor = Adafruit_DHT.DHT11
@@ -159,11 +171,11 @@ class ExQThread(QThread):
 
     def updateWeather(self):
         ip = self.thirdPart.GetOuterIP()
-        # print('>> ip:', ip)
+        print('>> ip:', ip)
         locate = self.thirdPart.IPLocation(ip)
-        # print('>> locate:', locate)
+        print('>> locate:', locate)
         res = self.thirdPart.weather(locate['city'])
-        # print('>> weather:', res)
+        print('>> weather:', res)
         weather = res[0]
         iconURL = res[1]
         path = 'source/icon/' + weather + '.png'
@@ -201,20 +213,25 @@ class ExQThread(QThread):
         while self.running:
             try:
                 if cnt % 10 == 0:
+                    print('updateTime start')
                     self.updateTime()
-                    print('updateTime')
+                    print('updateTime finish')
                 if cnt % 600 == 0:
+                    print('updateWeather start')
                     self.updateWeather()
-                    print('updateWeather')
+                    print('updateWeather finish')
                 if cnt % 10 == 0:
+                    print('updateHistory start')
                     self.updateHistory()
-                    print('updateHistory')
+                    print('updateHistory finish')
                 if cnt % 10 == 0:
+                    print('updateHeadlines start')
                     self.updateHeadlines()
-                    print('updateHeadlines')
+                    print('updateHeadlines finish')
                 if cnt % 5 == 0:
+                    print('updateTempHum start')
                     self.updateTempHum()
-                    print('updateTempHum')
+                    print('updateTempHum finish')
                 if cnt >= 600:
                     cnt = 0
             except Exception as e:
@@ -294,7 +311,7 @@ class SpImgThread(QThread):
     def onePhrase(self):
         url = 'https://v1.hitokoto.cn/?encode=json&charset=utf-8'
         try:
-            res = requests.get(url).json()
+            res = requests.get(url, timeout=5).json()
         except:
             return None
         hitokoto = res['hitokoto']
@@ -330,6 +347,7 @@ class SpImgThread(QThread):
             print(">> 有人靠近状态")
             self.speech.playAudio("audio/nihao.mp3")
             msg = self.onePhrase()
+            print(msg)
             self.speech.TextToPlay(msg)
             self.MODE = 2                       # 改变状态
         elif self.MODE == 2:                    # 人脸识别状态
