@@ -44,20 +44,20 @@ class FaceFunction:
             if len(faces) > 0:
                 cv2.imwrite(self.imgPath, frame)             # 保存图像
                 try:
-                    # print('*******faceProcess_thread.start*******')
                     if self.threadRunning == False:
+                        print('*******faceProcess_thread.start*******')
                         self.threadRunning = True
                         faceProThread = threading.Thread(target=self.faceProcess, args=(self.imgPath, self.savePath))
                         faceProThread.setDaemon(True)
                         faceProThread.start()
-                    # print('*******faceProcess_thread.end*******')
+                        print('*******faceProcess_thread.end*******')
                 except Exception as e:
                     print(e)
                     print('请移出镜头后重刷')
-            for x, y, w, h in faces:
-                cv2.rectangle(frame, (x, y), (x + w, y + w), (0, 255, 0), 2)  # 画矩形
-            # cv2.imshow('frame', frame)      # 显示图像
-            # key = cv2.waitKey(1) & 0xFF     # 等待键盘输入，延时为毫秒级
+                for x, y, w, h in faces:
+                    cv2.rectangle(frame, (x, y), (x + w, y + w), (0, 255, 0), 2)  # 画矩形
+            #cv2.imshow('frame', frame)      # 显示图像
+            #key = cv2.waitKey(1) & 0xFF     # 等待键盘输入，延时为毫秒级
             # if key == ord('q'):             # 按q退出
             #     break
         cap.release()                       # 释放摄像头
@@ -104,7 +104,10 @@ class FaceFunction:
         """获取access_token"""
         # client_id 为官网获取的AK， client_secret 为官网获取的SK
         host = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id={}&client_secret={}'.format(self.APIKEY, self.SECRETKEY)
-        response = requests.get(host)
+        try:
+            response = requests.get(host, timeout=5)
+        except:
+            return None
         if response:
             return response.json()['access_token']
 
@@ -124,7 +127,10 @@ class FaceFunction:
             'face_field':'age,beauty,expression,face_shape,gender,glasses,landmark,landmark150,race,quality,eye_status,emotion',
         }
         headers = {'content-type': 'application/json'}
-        response = requests.post(request_url, data=params, headers=headers)
+        try:
+            response = requests.post(request_url, data=params, headers=headers, timeout=5)
+        except:
+            return None
         if response:
             res = response.json()
             error_code = res['error_code']
@@ -162,11 +168,11 @@ class FaceFunction:
 
     # 向服务器上传图片
     def uploadImg(self, filepath):
-        url = 'http://121.36.68.53/WEB/MagicMirror/upload_file.php'
+        url = 'http://121.36.68.53/web/MagicMirror/upload_file.php'
         filename = filepath.split('/')[-1]
         if filename:
             files = {"file": (filename, open(filepath, "rb"), "image/png")}
-            html = requests.post(url, files=files)
+            html = requests.post(url, files=files, timeout=3)
             print(">> 上传完成！")
 
     # 人脸处理，用于获得人脸检测信息后要执行的内容（作为子线程运行，不用子线程也是可以的只是会卡图像）
@@ -195,7 +201,7 @@ class FaceFunction:
 if __name__ == '__main__':
     face = FaceFunction()
     face.startFaceVideo()
-    time.sleep(5)
+    time.sleep(30)
     face.stopFaceVideo()
 
 

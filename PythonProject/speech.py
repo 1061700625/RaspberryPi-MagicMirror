@@ -43,16 +43,61 @@ class SpeechFunction:
         os.system(cmd)
         return newfilePath
 
+    def audioToText_Sougou(self, filePath):
+        def encode_audio(path):
+            with open(path, "rb") as audio_file:
+                encoded_string = base64.b64encode(audio_file.read())
+            return encoded_string.decode('ascii')
+        
+        def recognize(appid, token, path):
+            data = {
+            'config': {
+              'encoding': 'LINEAR16',
+              'sample_rate_hertz': 16000,
+              'language_code': 'zh-cmn-Hans-CN'
+            }, 
+            'audio': {
+              'content': encode_audio(path)
+            }
+            }
+            headers = {
+            'Content-Type': 'application/json',
+            'Appid': appid,
+            'Authorization': 'Bearer ' + token
+            }
+            return requests.post('https://api.zhiyin.sogou.com/apis/asr/v1/recognize', data=json.dumps(data), headers=headers).json()
+        
+        appid = '25w5G9coKR2UCmbuI3VZpfIgGIF'
+        token = self.getToken_Sougou()
+        result = recognize(appid, token, filePath)
+        print(result)
+        if result:
+            return result['results'][0]['alternatives'][0]['transcript']
+        return None
+        
+    
     # 语音转文字，只接受pcm格式音频
     def audioToText(self, filePath):
         """语音转文字，只接受pcm格式音频。filePath 语音所在路径"""
         with open(filePath, 'rb') as fp:
             content = fp.read()
         res = self.client.asr(content, 'pcm', 16000)
+        print(res)
         if res['err_msg'] == 'success.':
             result = str(res["result"][0])
             return result
         return None
+
+    def getToken_Sougou(self):
+        url = 'https://api.zhiyin.sogou.com/apis/auth/v1/create_token'
+        headers = {'Content-Type': 'application/json'}
+        data = {
+          "appid": "25w5G9coKR2UCmbuI3VZpfIgGIF",
+          "appkey": "Ijv7cLyx7dxwEeFeDmjflcWH0oSxbswkNR/atdPgSj0Z3Oc9Mot11Vc9xCjluH51DGzVKt1Ehv6BIxQ2dGru2A==",
+          "exp": "60s"
+        }
+        res = requests.post(url=url, headers=headers, data=json.dumps(data)).json()
+        return res['token']
 
     def textToAudio_Sougou(self, message, filePath):
         # https://ai.sogou.com/doc/?url=/docs/content/tts/references/rest/ 
@@ -65,7 +110,7 @@ class SpeechFunction:
           "exp": "3600s"
         }' https://api.zhiyin.sogou.com/apis/auth/v1/create_token
         '''
-        token = 'eyJhbGciOiJkaXIiLCJjdHkiOiJKV1QiLCJlbmMiOiJBMTI4R0NNIiwidHlwIjoiSldUIiwiemlwIjoiREVGIn0..bv5w2OZDUVF5rNQ6.DZ1SSCCy0dWCzF7i5fohgdLEir4fNX0CA23MQwihVQOkXKEUgSPiUX8j-kk21ZAm0ywSMdHHdfqwbwRn0oLaRCyHeHCh0Uaa_d86RxisKn7bHejAYjxZX-8Mr4yKGgKiOfHcHgUWarkWAyGu1wVP2PHE6JUNnpoiNAjdWpEmAL1NarHP5UCySaipGPgDMQR4iVO7K0s0zgIufAJytRuJ1Z2tZoQvZdn53ZJRVr5ossFYH4zNAWxYn4f0oSxksRWN37YBTOsr1XE7XMgKa5COqh-b2iSO0kzpmIlUVIKK-JnxAat-lkoYKR2XUHmqGb4sf_xeMncUrRfHSWp5YpWq6GYWZ4Fq0_Msc0A.73y-FwCUkjEPGN9ApFmw5g'
+        token = self.getToken_Sougou()
         url = 'https://api.zhiyin.sogou.com/apis/tts/v1/synthesize'
         headers = { 
             'Authorization' : 'Bearer '+token,
@@ -94,10 +139,9 @@ class SpeechFunction:
         
         result = requests.post(url=url, headers=headers, data=json.dumps(data, ensure_ascii=False).encode('utf-8')).content
         # 识别正确返回语音二进制 错误则返回dict 参照下面错误码
-        if not isinstance(result, dict):
-            with open(filePath, 'wb') as f:
-                f.write(result)
-                return True
+        with open(filePath, 'wb') as f:
+            f.write(result)
+            return True
         return False
     
     
@@ -269,7 +313,8 @@ class SpeechFunction:
             while self.checkAudioPlaying():  # 检查音频播放线程是否结束
                 time.sleep(1)
             self.recordAudio('audio/record.pcm', 5)         # 录音
-            res = self.audioToText('audio/record.pcm')      # 语音转文字
+            #res = self.audioToText('audio/record.pcm')      # 语音转文字
+            res = self.audioToText_Sougou('audio/record.pcm')      # 语音转文字
             if res:
                 print(">> 你说的：", res)
                 # msg = self.tencentBot(res)
@@ -336,7 +381,7 @@ def test():
         msg = speech.tulingBot(res)
         # msg = speech.tencentBot(res)
         print(">> 机器人：", msg)
-        # speech.tencentTextToAudio(msg, 'audio/text2audio.mp3')
+        #speech.textToAudio(msg, 'audio/text2audio.mp3')
         speech.textToAudio_Sougou(msg, 'audio/text2audio.mp3')     # 文字转语音
         speech.playAudio('audio/text2audio.mp3')  # 播放语音
         while speech.checkAudioPlaying():  # 检查音频播放线程是否结束
@@ -344,7 +389,9 @@ def test():
         print("\r\n>> 结束!")
 
 if __name__ == '__main__':
-    test()
+    speech = SpeechFunction()  # 实例化
+    speech.audioToText_Sougou('audio/record.pcm')
+    #test()
     # input(">> 任意键退出")
 
 
