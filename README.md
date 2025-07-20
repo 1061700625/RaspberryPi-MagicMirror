@@ -30,3 +30,9 @@
 
 具体教程请看上方对应的**xxx.md**
 
+---   
+
+本项目 CDN 加速及安全防护由 [Tencent EdgeOne](https://edgeone.ai/zh?from=github) 赞助
+
+<img width="2163" height="308" alt="image" src="https://github.com/user-attachments/assets/6d5b87e2-6803-4478-814f-098c2020caf1" />
+
