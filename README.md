@@ -32,7 +32,5 @@
 
 ---   
 
-本项目 CDN 加速及安全防护由 [Tencent EdgeOne](https://edgeone.ai/zh?from=github) 赞助
-
-<img width="2163" height="308" alt="image" src="https://github.com/user-attachments/assets/6d5b87e2-6803-4478-814f-098c2020caf1" />
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 
